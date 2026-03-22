@@ -308,7 +308,7 @@
       <div class="pi-sequence" id="sequence">
         <span class="digit point">3.</span>
       </div>
-      <div class="message" id="message">press START to begin</div>
+      <div class="message" id="message">press any digit to begin</div>
     </div>
   </div>
 
@@ -335,7 +335,6 @@
   </div>
 
   <div class="actions">
-    <button class="btn primary" id="startBtn">START</button>
     <button class="btn" id="replayBtn">REPLAY</button>
   </div>
 </div>
@@ -432,9 +431,13 @@ function playSuccessChime() {
   });
 }
 
+// --- Full Pi sequence including "3" ---
+const FULL_PI = '3' + PI; // "31415926535..."
+
 // --- Game state ---
-let currentIndex = 0;  // index into PI string (digits after "3.")
-let isPlaying = false;  // is the Simon playback happening?
+let roundLength = 0;   // how many digits revealed so far (the "level")
+let inputIndex = 0;    // which digit in the sequence the user is currently entering
+let isPlaying = false;
 let gameActive = false;
 let bestScore = parseInt(localStorage.getItem('pimon-best') || '0');
 
@@ -444,39 +447,40 @@ const sequenceEl = document.getElementById('sequence');
 const messageEl = document.getElementById('message');
 const displayEl = document.getElementById('display');
 const overlay = document.getElementById('overlay');
-const startBtn = document.getElementById('startBtn');
 const replayBtn = document.getElementById('replayBtn');
 const keys = document.querySelectorAll('.key');
 
 bestEl.textContent = bestScore;
 
 // --- Rendering ---
-function renderSequence() {
-  let html = '<span class="digit point">3.</span>';
-  for (let i = 0; i < currentIndex; i++) {
-    html += `<span class="digit revealed">${PI[i]}</span>`;
+function renderSequence(opts = {}) {
+  let html = '';
+  for (let i = 0; i < roundLength; i++) {
+    const ch = FULL_PI[i];
+    let cls = 'digit revealed';
+    if (opts.highlightTo !== undefined && i < opts.highlightTo) cls = 'digit correct';
+    if (opts.wrongAt === i) cls = 'digit wrong';
+    html += `<span class="${cls}">${ch}</span>`;
+    if (i === 0) html += `<span class="digit point">.</span>`;
   }
-  // show cursor for next digit
-  if (gameActive && !isPlaying) {
+  if (gameActive && !isPlaying && opts.wrongAt === undefined) {
     html += `<span class="digit current">_</span>`;
   }
-  sequenceEl.innerHTML = html;
-
-  // auto-scroll to bottom
-  sequenceEl.scrollTop = sequenceEl.scrollHeight;
+  sequenceEl.innerHTML = html || '<span class="digit point" style="color:#555">3.14159...</span>';
 }
 
 function updateScore() {
-  scoreEl.textContent = currentIndex;
-  if (currentIndex > bestScore) {
-    bestScore = currentIndex;
+  const displayScore = Math.max(0, roundLength - 1); // don't count "3" as a digit
+  scoreEl.textContent = displayScore;
+  if (displayScore > bestScore) {
+    bestScore = displayScore;
     bestEl.textContent = bestScore;
     localStorage.setItem('pimon-best', bestScore);
   }
 }
 
-// --- Simon-style playback ---
-async function playSequence(startFrom = 0) {
+// --- Simon-style playback: plays the FULL current sequence ---
+async function playSequence() {
   isPlaying = true;
   overlay.classList.add('active');
   messageEl.textContent = 'watch & listen...';
@@ -484,19 +488,21 @@ async function playSequence(startFrom = 0) {
 
   renderSequence();
 
-  // Play from startFrom up to and including the new digit
-  const playStart = Math.max(0, currentIndex - 4); // show last few + new one
-  for (let i = playStart; i <= currentIndex; i++) {
-    const d = parseInt(PI[i]);
+  // Play every digit from 0 to roundLength-1
+  for (let i = 0; i < roundLength; i++) {
+    const d = parseInt(FULL_PI[i]);
     flashKey(d);
     playTone(d, 0.22);
-    await sleep(380);
+    // Adaptive timing: faster for longer sequences
+    const delay = roundLength <= 5 ? 420 : roundLength <= 12 ? 340 : 280;
+    await sleep(delay);
   }
 
-  await sleep(200);
+  await sleep(250);
   isPlaying = false;
   overlay.classList.remove('active');
-  messageEl.textContent = `digit ${currentIndex + 1} — your turn`;
+  inputIndex = 0;
+  messageEl.textContent = 'your turn — enter the sequence';
   messageEl.className = 'message';
   renderSequence();
 }
@@ -514,74 +520,74 @@ function sleep(ms) {
 
 // --- Game logic ---
 function startGame() {
-  currentIndex = 0;
+  roundLength = 1; // start with just "3"
+  inputIndex = 0;
   gameActive = true;
   updateScore();
-  renderSequence();
-  startBtn.textContent = 'RESTART';
   playSequence();
 }
 
 function handleDigitPress(digit) {
-  if (!gameActive || isPlaying) return;
+  ensureAudio();
 
-  const expected = parseInt(PI[currentIndex]);
+  // Any key press starts the game if not active
+  if (!gameActive && !isPlaying) {
+    startGame();
+    return;
+  }
+
+  if (isPlaying) return;
+
+  const expected = parseInt(FULL_PI[inputIndex]);
 
   if (digit === expected) {
-    // Correct!
+    // Correct digit
     playTone(digit, 0.15);
     flashKey(digit);
 
-    // Show correct briefly
-    let html = '<span class="digit point">3.</span>';
-    for (let i = 0; i < currentIndex; i++) {
-      html += `<span class="digit revealed">${PI[i]}</span>`;
-    }
-    html += `<span class="digit correct">${PI[currentIndex]}</span>`;
-    sequenceEl.innerHTML = html;
+    inputIndex++;
 
-    currentIndex++;
-    updateScore();
+    // Show progress
+    renderSequence({ highlightTo: inputIndex });
 
-    // Milestone chime every 10 digits
-    if (currentIndex % 10 === 0) {
-      displayEl.classList.add('glow');
-      setTimeout(() => displayEl.classList.remove('glow'), 600);
-      playSuccessChime();
-      messageEl.textContent = `${currentIndex} digits!`;
-      messageEl.className = 'message success';
-      setTimeout(() => {
-        if (gameActive) playSequence();
-      }, 900);
-    } else {
-      // Short delay then play next
-      setTimeout(() => {
-        if (gameActive) playSequence();
-      }, 400);
+    if (inputIndex >= roundLength) {
+      // Completed the full sequence for this round!
+      roundLength++;
+      updateScore();
+
+      // Milestone chime every 10 digits
+      if ((roundLength - 1) % 10 === 0 && roundLength > 1) {
+        displayEl.classList.add('glow');
+        setTimeout(() => displayEl.classList.remove('glow'), 600);
+        playSuccessChime();
+        messageEl.textContent = `${roundLength - 1} digits!`;
+        messageEl.className = 'message success';
+        setTimeout(() => {
+          if (gameActive) playSequence();
+        }, 1000);
+      } else {
+        setTimeout(() => {
+          if (gameActive) playSequence();
+        }, 500);
+      }
     }
   } else {
     // Wrong!
     playErrorSound();
 
-    let html = '<span class="digit point">3.</span>';
-    for (let i = 0; i < currentIndex; i++) {
-      html += `<span class="digit revealed">${PI[i]}</span>`;
-    }
-    html += `<span class="digit wrong">${digit}</span>`;
-    html += `<span class="digit correct" style="opacity:0.5;margin-left:4px;">(${expected})</span>`;
-    sequenceEl.innerHTML = html;
+    renderSequence({ wrongAt: inputIndex });
 
     displayEl.classList.add('shake');
     setTimeout(() => displayEl.classList.remove('shake'), 400);
 
-    messageEl.textContent = `wrong! it was ${expected} — you got ${currentIndex} digits`;
+    const score = Math.max(0, roundLength - 2);
+    messageEl.textContent = `wrong! expected ${expected} — you got ${score} digits`;
     messageEl.className = 'message error';
     gameActive = false;
-    startBtn.textContent = 'TRY AGAIN';
   }
 }
 
-// --- Replay last sequence ---
+// --- Replay current sequence ---
 function replaySequence() {
   if (!gameActive || isPlaying) return;
   playSequence();
@@ -591,7 +597,6 @@ function replaySequence() {
 keys.forEach(key => {
   const digit = parseInt(key.dataset.digit);
 
-  // Pointer events for both touch and mouse
   key.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     key.classList.add('pressed');
@@ -600,11 +605,6 @@ keys.forEach(key => {
 
   key.addEventListener('pointerup', () => key.classList.remove('pressed'));
   key.addEventListener('pointerleave', () => key.classList.remove('pressed'));
-});
-
-startBtn.addEventListener('click', () => {
-  ensureAudio();
-  startGame();
 });
 
 replayBtn.addEventListener('click', () => {
@@ -616,8 +616,6 @@ replayBtn.addEventListener('click', () => {
 document.addEventListener('keydown', (e) => {
   const d = parseInt(e.key);
   if (!isNaN(d) && d >= 0 && d <= 9) {
-    ensureAudio();
-    if (!gameActive) return;
     const key = document.querySelector(`.key[data-digit="${d}"]`);
     if (key) key.classList.add('pressed');
     handleDigitPress(d);
