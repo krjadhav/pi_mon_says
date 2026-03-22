@@ -178,35 +178,39 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.08s, filter 0.08s, box-shadow 0.08s;
+    transition: transform 0.12s, filter 0.12s, box-shadow 0.2s, background 0.2s;
     position: relative;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.2), 0 6px 12px rgba(0,0,0,0.1);
     user-select: none;
     -webkit-user-select: none;
+    /* Dim "off" state — muted, desaturated */
+    filter: saturate(0.3) brightness(0.55);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15), 0 4px 8px rgba(0,0,0,0.08);
   }
 
+  /* Lit up when pressed by user */
   .key:active, .key.pressed {
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
-    filter: brightness(1.1);
+    transform: translateY(2px);
+    filter: saturate(1) brightness(1.1);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 0 20px 4px var(--key-glow, rgba(255,255,255,0.3));
   }
 
+  /* Lit up during Simon playback hint */
   .key.flash {
-    filter: brightness(1.4) saturate(1.3);
-    transform: scale(1.04);
-    box-shadow: 0 4px 0 rgba(0,0,0,0.2), 0 6px 20px rgba(0,0,0,0.15);
+    filter: saturate(1.2) brightness(1.25);
+    transform: scale(1.05);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.15), 0 0 24px 6px var(--key-glow, rgba(255,255,255,0.4));
   }
 
-  .key[data-digit="0"] { background: var(--red); color: #fff; }
-  .key[data-digit="1"] { background: var(--blue); color: #fff; }
-  .key[data-digit="2"] { background: var(--yellow); color: var(--black); }
-  .key[data-digit="3"] { background: var(--teal); color: #fff; }
-  .key[data-digit="4"] { background: var(--orange); color: #fff; }
-  .key[data-digit="5"] { background: var(--pink); color: #fff; }
-  .key[data-digit="6"] { background: var(--purple); color: #fff; }
-  .key[data-digit="7"] { background: var(--green); color: #fff; }
-  .key[data-digit="8"] { background: var(--sky); color: #fff; }
-  .key[data-digit="9"] { background: var(--sand); color: var(--black); }
+  .key[data-digit="0"] { background: var(--red); color: #fff; --key-glow: rgba(214,40,40,0.5); }
+  .key[data-digit="1"] { background: var(--blue); color: #fff; --key-glow: rgba(29,53,87,0.5); }
+  .key[data-digit="2"] { background: var(--yellow); color: var(--black); --key-glow: rgba(244,161,0,0.5); }
+  .key[data-digit="3"] { background: var(--teal); color: #fff; --key-glow: rgba(42,157,143,0.5); }
+  .key[data-digit="4"] { background: var(--orange); color: #fff; --key-glow: rgba(231,111,81,0.5); }
+  .key[data-digit="5"] { background: var(--pink); color: #fff; --key-glow: rgba(230,57,70,0.5); }
+  .key[data-digit="6"] { background: var(--purple); color: #fff; --key-glow: rgba(106,76,147,0.5); }
+  .key[data-digit="7"] { background: var(--green); color: #fff; --key-glow: rgba(82,183,136,0.5); }
+  .key[data-digit="8"] { background: var(--sky); color: #fff; --key-glow: rgba(69,123,157,0.5); }
+  .key[data-digit="9"] { background: var(--sand); color: var(--black); --key-glow: rgba(201,173,167,0.5); }
 
   .row-zero { justify-content: center; }
   .row-zero .key { max-width: 160px; aspect-ratio: 1.6 / 0.82; flex: 0 0 46%; }
