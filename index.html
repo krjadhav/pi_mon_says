@@ -346,11 +346,16 @@ const EMBEDDED_PI_LENGTH = PI.length;
 const MAX_PI_DECIMALS = 100000;
 const MAX_SEQUENCE_LENGTH = MAX_PI_DECIMALS + 1; // include leading "3"
 const VISIBLE_SEQUENCE_DIGITS = 48;
-const PI_COMPUTE_BATCH_SIZE = 25;
+const RUNTIME_TRIGGER_DIGITS = EMBEDDED_PI_LENGTH;
+const RUNTIME_CHUNK_SIZE = 100;
 let fullPi = `3${PI}`;
-let piRuntimePromise = null;
 let piDigitsReady = fullPi.length;
 let completedDigits = 0;
+let piWorker;
+let piWorkerUrl;
+let piRequestCounter = 0;
+const piRequestPromises = new Map();
+const piPendingRequests = new Map();
 
 // --- Audio engine ---
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -444,60 +449,110 @@ function getPiDigitAt(index) {
   return fullPi[index];
 }
 
-function yieldToBrowser() {
-  return new Promise((resolve) => {
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => resolve());
+function createPiWorker() {
+  if (piWorker) return piWorker;
+
+  const workerSource = `
+    const MAX_PI_DECIMALS = ${MAX_PI_DECIMALS};
+    const EXTRA_DIGITS = 16;
+    const TERMS_PER_DIGIT = 14.181647462725477;
+    const SCALE_DIGITS = MAX_PI_DECIMALS + EXTRA_DIGITS;
+    const SCALE = 10n ** BigInt(SCALE_DIGITS);
+    const SQRT_TERM = isqrt(10005n * SCALE * SCALE);
+
+    let m = 1n;
+    let l = 13591409n;
+    let x = 1n;
+    let k = 6n;
+    let sum = l * SCALE;
+    let computedTerms = 1;
+
+    function isqrt(n) {
+      if (n < 0n) throw new Error('square root of negative bigint');
+      if (n < 2n) return n;
+      let a = n;
+      let b = (a + 1n) >> 1n;
+      while (b < a) {
+        a = b;
+        b = (a + n / a) >> 1n;
+      }
+      return a;
+    }
+
+    function ensureTerms(targetDecimals) {
+      const requiredTerms = Math.ceil(targetDecimals / TERMS_PER_DIGIT) + 2;
+      for (let i = computedTerms; i < requiredTerms; i++) {
+        const bigI = BigInt(i);
+        m = (m * (k * k * k - 16n * k)) / (bigI * bigI * bigI);
+        l += 545140134n;
+        x *= -262537412640768000n;
+        sum += ((m * l) * SCALE) / x;
+        k += 12n;
+      }
+      computedTerms = Math.max(computedTerms, requiredTerms);
+    }
+
+    function computePiDecimals(targetDecimals) {
+      ensureTerms(targetDecimals);
+      const piScaled = (426880n * SQRT_TERM * SCALE) / sum;
+      const piString = piScaled.toString();
+      const integerDigits = piString.length - SCALE_DIGITS;
+      const decimals = piString.slice(integerDigits, integerDigits + targetDecimals);
+      return decimals.padEnd(targetDecimals, '0');
+    }
+
+    self.onmessage = (event) => {
+      const { id, targetDecimals } = event.data;
+      try {
+        const digits = computePiDecimals(targetDecimals);
+        self.postMessage({ id, targetDecimals, digits });
+      } catch (error) {
+        self.postMessage({ id, error: error instanceof Error ? error.message : String(error) });
+      }
+    };
+  `;
+
+  piWorkerUrl = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
+  piWorker = new Worker(piWorkerUrl);
+  piWorker.onmessage = (event) => {
+    const { id, targetDecimals, digits, error } = event.data;
+    const pending = piPendingRequests.get(id);
+    if (!pending) return;
+    piPendingRequests.delete(id);
+    piRequestPromises.delete(targetDecimals);
+
+    if (error) {
+      pending.reject(new Error(error));
       return;
     }
-    setTimeout(resolve, 0);
-  });
+
+    fullPi = `3${PI}${digits.slice(EMBEDDED_PI_LENGTH)}`;
+    piDigitsReady = fullPi.length;
+    pending.resolve(targetDecimals);
+  };
+  piWorker.onerror = (event) => {
+    const error = new Error(event.message || 'pi worker failed');
+    piPendingRequests.forEach(({ reject, targetDecimals }) => {
+      piRequestPromises.delete(targetDecimals);
+      reject(error);
+    });
+    piPendingRequests.clear();
+    piRequestPromises.clear();
+  };
+
+  return piWorker;
 }
 
-function isqrt(n) {
-  if (n < 0n) throw new Error('square root of negative bigint');
-  if (n < 2n) return n;
+function getChunkTargetDecimals(requiredLength) {
+  const requiredDecimals = requiredLength - 1;
+  if (requiredDecimals <= RUNTIME_TRIGGER_DIGITS) return RUNTIME_TRIGGER_DIGITS;
 
-  let x = n;
-  let y = (x + 1n) >> 1n;
-  while (y < x) {
-    x = y;
-    y = (x + n / x) >> 1n;
-  }
-  return x;
-}
-
-async function computePiDecimals(limit) {
-  const extraDigits = 16;
-  const scaleDigits = limit + extraDigits;
-  const terms = Math.ceil(limit / 14.181647462725477) + 2;
-  const scale = 10n ** BigInt(scaleDigits);
-
-  let m = 1n;
-  let l = 13591409n;
-  let x = 1n;
-  let k = 6n;
-  let sum = l * scale;
-
-  for (let i = 1; i < terms; i++) {
-    const bigI = BigInt(i);
-    m = (m * (k * k * k - 16n * k)) / (bigI * bigI * bigI);
-    l += 545140134n;
-    x *= -262537412640768000n;
-    sum += ((m * l) * scale) / x;
-    k += 12n;
-
-    if (i % PI_COMPUTE_BATCH_SIZE === 0) {
-      await yieldToBrowser();
-    }
-  }
-
-  const sqrtTerm = isqrt(10005n * scale * scale);
-  const piScaled = (426880n * sqrtTerm * scale) / sum;
-  const piString = piScaled.toString();
-  const integerDigits = piString.length - scaleDigits;
-  const decimals = piString.slice(integerDigits, integerDigits + limit);
-  return decimals.padEnd(limit, '0');
+  const extraDecimals = requiredDecimals - RUNTIME_TRIGGER_DIGITS;
+  const chunkCount = Math.ceil(extraDecimals / RUNTIME_CHUNK_SIZE);
+  return Math.min(
+    MAX_PI_DECIMALS,
+    RUNTIME_TRIGGER_DIGITS + chunkCount * RUNTIME_CHUNK_SIZE
+  );
 }
 
 async function ensurePiDigitsAvailable(requiredLength) {
@@ -505,32 +560,29 @@ async function ensurePiDigitsAvailable(requiredLength) {
   if (requiredLength > MAX_SEQUENCE_LENGTH) {
     throw new Error(`Requested ${requiredLength} digits but only ${MAX_SEQUENCE_LENGTH} are supported.`);
   }
+  if (requiredLength - 1 <= RUNTIME_TRIGGER_DIGITS) return;
 
-  if (!piRuntimePromise) {
-    piRuntimePromise = (async () => {
-      const computedDecimals = await computePiDecimals(MAX_PI_DECIMALS);
-      if (!computedDecimals.startsWith(PI)) {
-        throw new Error('Computed pi digits did not match the embedded prefix.');
-      }
-      fullPi = `3${PI}${computedDecimals.slice(EMBEDDED_PI_LENGTH)}`;
-      piDigitsReady = fullPi.length;
-    })();
+  const targetDecimals = getChunkTargetDecimals(requiredLength);
+  if (targetDecimals + 1 <= piDigitsReady) return;
+  if (piRequestPromises.has(targetDecimals)) {
+    await piRequestPromises.get(targetDecimals);
+    return;
   }
 
-  await piRuntimePromise;
-}
+  const worker = createPiWorker();
+  const requestId = `pi-${++piRequestCounter}`;
 
-function warmPiCache() {
-  if (piRuntimePromise) return;
-  ensurePiDigitsAvailable(MAX_SEQUENCE_LENGTH).catch((error) => {
-    console.error(error);
-    if (gameActive) {
-      messageEl.textContent = 'runtime pi generation failed';
-      messageEl.className = 'message error';
-      gameActive = false;
-      overlay.classList.remove('active');
-    }
+  const requestPromise = new Promise((resolve, reject) => {
+    piPendingRequests.set(requestId, { resolve, reject, targetDecimals });
+    worker.postMessage({ id: requestId, targetDecimals });
   });
+  piRequestPromises.set(targetDecimals, requestPromise);
+
+  try {
+    await requestPromise;
+  } finally {
+    piPendingRequests.delete(requestId);
+  }
 }
 
 // --- Game state ---
@@ -585,7 +637,14 @@ function updateScore() {
 
 // --- Simon-style playback: plays the FULL current sequence ---
 async function playSequence() {
+  isPlaying = true;
+  overlay.classList.add('active');
+
   try {
+    if (roundLength > piDigitsReady) {
+      messageEl.textContent = `computing next ${RUNTIME_CHUNK_SIZE} digits...`;
+      messageEl.className = 'message';
+    }
     await ensurePiDigitsAvailable(roundLength);
   } catch (error) {
     console.error(error);
@@ -597,8 +656,6 @@ async function playSequence() {
     return;
   }
 
-  isPlaying = true;
-  overlay.classList.add('active');
   messageEl.textContent = 'watch & listen...';
   messageEl.className = 'message';
 
@@ -640,7 +697,6 @@ function startGame() {
   inputIndex = 0;
   completedDigits = 0;
   gameActive = true;
-  warmPiCache();
   updateScore();
   playSequence();
 }
@@ -682,6 +738,11 @@ function handleDigitPress(digit) {
       }
 
       roundLength++;
+      if (completedDigits >= RUNTIME_TRIGGER_DIGITS) {
+        ensurePiDigitsAvailable(roundLength).catch((error) => {
+          console.error(error);
+        });
+      }
 
       // Milestone chime every 10 digits
       if (completedDigits > 0 && completedDigits % 10 === 0) {
@@ -766,6 +827,11 @@ document.addEventListener('keyup', (e) => {
 document.addEventListener('touchend', (e) => {
   if (e.target.closest('.key, .btn')) e.preventDefault();
 }, { passive: false });
+
+window.addEventListener('beforeunload', () => {
+  if (piWorker) piWorker.terminate();
+  if (piWorkerUrl) URL.revokeObjectURL(piWorkerUrl);
+});
 </script>
 
 </body>
