@@ -149,6 +149,22 @@
   .message.error { color: var(--red); font-weight: 700; }
   .message.success { color: var(--teal); }
 
+  .start-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0 6px;
+  }
+
+  .start-hint {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #777;
+    text-align: center;
+  }
+
   /* --- Keypad --- */
   .keypad-area {
     flex: 1;
@@ -286,6 +302,11 @@
 
   .display.glow { animation: pulse-glow 0.6s ease; }
 
+  .app.awaiting-start .keypad-area,
+  .app.awaiting-start .actions {
+    display: none;
+  }
+
   @media (min-width: 768px) {
     .app {
       justify-content: center;
@@ -333,6 +354,11 @@
     </div>
   </div>
 
+  <div class="start-panel" id="startPanel">
+    <button class="btn primary" id="startBtn">START GAME</button>
+    <div class="start-hint">spacebar or any digit also starts</div>
+  </div>
+
   <div class="keypad-area">
     <div class="playback-overlay" id="overlay"></div>
     <div class="row">
@@ -378,6 +404,7 @@ let piRequestCounter = 0;
 const piRequestPromises = new Map();
 const piPendingRequests = new Map();
 let playerTurnActive = false;
+let awaitingStart = true;
 
 // --- Audio engine ---
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -637,11 +664,19 @@ const bestEl = document.getElementById('best');
 const sequenceEl = document.getElementById('sequence');
 const messageEl = document.getElementById('message');
 const displayEl = document.getElementById('display');
+const appEl = document.querySelector('.app');
 const overlay = document.getElementById('overlay');
 const replayBtn = document.getElementById('replayBtn');
+const startPanel = document.getElementById('startPanel');
+const startBtn = document.getElementById('startBtn');
 const keys = document.querySelectorAll('.key');
 
 bestEl.textContent = bestScore;
+
+function syncStartUi() {
+  appEl.classList.toggle('awaiting-start', awaitingStart);
+  startPanel.hidden = !awaitingStart;
+}
 
 // --- Rendering ---
 function renderSequence(opts = {}) {
@@ -748,13 +783,14 @@ function startGame() {
   inputIndex = 0;
   completedDigits = 0;
   playerTurnActive = false;
+  awaitingStart = false;
   gameActive = true;
+  syncStartUi();
   updateScore();
   playSequence();
 }
 
 function handleDigitPress(digit) {
-  // After game over, any digit starts a new round.
   if (!gameActive && !isPlaying) {
     ensureAudio();
     startGame();
@@ -856,6 +892,11 @@ replayBtn.addEventListener('click', () => {
   replaySequence();
 });
 
+startBtn.addEventListener('click', () => {
+  ensureAudio();
+  startGame();
+});
+
 // Keyboard support
 document.addEventListener('keydown', (e) => {
   const d = parseInt(e.key);
@@ -864,6 +905,7 @@ document.addEventListener('keydown', (e) => {
     const key = document.querySelector(`.key[data-digit="${d}"]`);
     if (key) key.classList.add('pressed');
     handleDigitPress(d);
+    return;
   }
   if (e.key === 'Enter' || e.key === ' ') {
     if (isPlaying) {
@@ -892,6 +934,8 @@ document.addEventListener('touchend', (e) => {
 window.addEventListener('beforeunload', () => {
   resetPiWorker();
 });
+
+syncStartUi();
 </script>
 
 </body>
