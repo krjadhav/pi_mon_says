@@ -418,6 +418,7 @@ const piRequestPromises = new Map();
 const piPendingRequests = new Map();
 let playerTurnActive = false;
 let awaitingStart = true;
+let startPanelMode = 'start';
 
 // --- Audio engine ---
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -504,6 +505,25 @@ function playSuccessChime() {
     gain.connect(audioCtx.destination);
     osc.start(t + i * 0.1);
     osc.stop(t + i * 0.1 + 0.35);
+  });
+}
+
+function playPraiseSound() {
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  [659.25, 783.99].forEach((freq, i) => {
+    const start = t + i * 0.08;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.14, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(start);
+    osc.stop(start + 0.24);
   });
 }
 
@@ -689,6 +709,20 @@ bestEl.textContent = bestScore;
 function syncStartUi() {
   appEl.classList.toggle('awaiting-start', awaitingStart);
   startPanel.hidden = !awaitingStart;
+  if (startPanelMode === 'retry') {
+    startBtn.textContent = 'TRY AGAIN';
+    messageEl.textContent = `wrong! expected ${getPiDigitAt(inputIndex)} — you got ${completedDigits} digits`;
+    messageEl.className = 'message error';
+    const hintEl = startPanel.querySelector('.start-hint');
+    if (hintEl) hintEl.textContent = 'spacebar or any digit also restarts';
+    return;
+  }
+
+  startBtn.textContent = 'START GAME';
+  messageEl.textContent = 'press any digit to begin';
+  messageEl.className = 'message';
+  const hintEl = startPanel.querySelector('.start-hint');
+  if (hintEl) hintEl.textContent = 'spacebar or any digit also starts';
 }
 
 // --- Rendering ---
@@ -797,6 +831,7 @@ function startGame() {
   completedDigits = 0;
   playerTurnActive = false;
   awaitingStart = false;
+  startPanelMode = 'start';
   gameActive = true;
   syncStartUi();
   updateScore();
@@ -839,6 +874,7 @@ function handleDigitPress(digit) {
         return;
       }
 
+      playPraiseSound();
       roundLength++;
       playerTurnActive = false;
       if (completedDigits >= RUNTIME_TRIGGER_DIGITS) {
@@ -847,17 +883,19 @@ function handleDigitPress(digit) {
         });
       }
 
-      // Milestone chime every 10 digits
+      const gainedDigits = 1;
       if (completedDigits > 0 && completedDigits % 10 === 0) {
         displayEl.classList.add('glow');
         setTimeout(() => displayEl.classList.remove('glow'), 600);
         playSuccessChime();
-        messageEl.textContent = `${completedDigits} digits!`;
+        messageEl.textContent = `great! +${gainedDigits} digit — ${completedDigits} total`;
         messageEl.className = 'message success';
         setTimeout(() => {
           if (gameActive) playSequence();
         }, 1000);
       } else {
+        messageEl.textContent = `nice! +${gainedDigits} digit — ${completedDigits} total`;
+        messageEl.className = 'message success';
         setTimeout(() => {
           if (gameActive) playSequence();
         }, 500);
@@ -873,9 +911,10 @@ function handleDigitPress(digit) {
     displayEl.classList.add('shake');
     setTimeout(() => displayEl.classList.remove('shake'), 400);
 
-    messageEl.textContent = `wrong! expected ${expected} — you got ${completedDigits} digits`;
-    messageEl.className = 'message error';
     gameActive = false;
+    awaitingStart = true;
+    startPanelMode = 'retry';
+    syncStartUi();
   }
 }
 
