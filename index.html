@@ -377,6 +377,7 @@ let piWorkerUrl;
 let piRequestCounter = 0;
 const piRequestPromises = new Map();
 const piPendingRequests = new Map();
+let playerTurnActive = false;
 
 // --- Audio engine ---
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -470,6 +471,17 @@ function getPiDigitAt(index) {
   return fullPi[index];
 }
 
+function resetPiWorker() {
+  if (piWorker) {
+    piWorker.terminate();
+    piWorker = null;
+  }
+  if (piWorkerUrl) {
+    URL.revokeObjectURL(piWorkerUrl);
+    piWorkerUrl = null;
+  }
+}
+
 function createPiWorker() {
   if (piWorker) return piWorker;
 
@@ -543,6 +555,7 @@ function createPiWorker() {
     piRequestPromises.delete(targetDecimals);
 
     if (error) {
+      resetPiWorker();
       pending.reject(new Error(error));
       return;
     }
@@ -553,6 +566,7 @@ function createPiWorker() {
   };
   piWorker.onerror = (event) => {
     const error = new Error(event.message || 'pi worker failed');
+    resetPiWorker();
     piPendingRequests.forEach(({ reject, targetDecimals }) => {
       piRequestPromises.delete(targetDecimals);
       reject(error);
@@ -627,7 +641,9 @@ bestEl.textContent = bestScore;
 // --- Rendering ---
 function renderSequence(opts = {}) {
   let html = '';
-  const hideDigits = opts.hideDigits === true;
+  const hideDigits =
+    opts.hideDigits === true ||
+    (playerTurnActive && opts.reveal !== true && opts.wrongAt === undefined);
 
   if (hideDigits) {
     sequenceEl.innerHTML = '<span class="digit current">_</span>';
@@ -666,6 +682,7 @@ function updateScore() {
 // --- Simon-style playback: plays the FULL current sequence ---
 async function playSequence() {
   isPlaying = true;
+  playerTurnActive = false;
   overlay.classList.add('active');
 
   try {
@@ -687,7 +704,7 @@ async function playSequence() {
   messageEl.textContent = 'watch & listen...';
   messageEl.className = 'message';
 
-  renderSequence();
+  renderSequence({ reveal: true });
 
   // Play every digit from 0 to roundLength-1
   for (let i = 0; i < roundLength; i++) {
@@ -701,6 +718,7 @@ async function playSequence() {
 
   await sleep(250);
   isPlaying = false;
+  playerTurnActive = true;
   overlay.classList.remove('active');
   inputIndex = 0;
   messageEl.textContent = 'your turn — enter the sequence';
@@ -724,14 +742,13 @@ function startGame() {
   roundLength = 1; // start with just "3"
   inputIndex = 0;
   completedDigits = 0;
+  playerTurnActive = false;
   gameActive = true;
   updateScore();
   playSequence();
 }
 
 function handleDigitPress(digit) {
-  ensureAudio();
-
   // Any key press starts the game if not active
   if (!gameActive && !isPlaying) {
     startGame();
@@ -739,6 +756,7 @@ function handleDigitPress(digit) {
   }
 
   if (isPlaying) return;
+  ensureAudio();
 
   const expected = parseInt(getPiDigitAt(inputIndex), 10);
 
@@ -749,8 +767,8 @@ function handleDigitPress(digit) {
 
     inputIndex++;
 
-    // Show progress
-    renderSequence({ highlightTo: inputIndex });
+    // Keep the sequence hidden during the player's turn.
+    renderSequence({ hideDigits: true });
 
     if (inputIndex >= roundLength) {
       // Completed the full sequence for this round.
@@ -761,11 +779,13 @@ function handleDigitPress(digit) {
         playSuccessChime();
         messageEl.textContent = `congrats you've memorized ${MAX_PI_DECIMALS.toLocaleString()} digits`;
         messageEl.className = 'message success';
+        playerTurnActive = false;
         gameActive = false;
         return;
       }
 
       roundLength++;
+      playerTurnActive = false;
       if (completedDigits >= RUNTIME_TRIGGER_DIGITS) {
         ensurePiDigitsAvailable(roundLength).catch((error) => {
           console.error(error);
@@ -792,7 +812,8 @@ function handleDigitPress(digit) {
     // Wrong!
     playErrorSound();
 
-    renderSequence({ wrongAt: inputIndex });
+    playerTurnActive = false;
+    renderSequence({ wrongAt: inputIndex, reveal: true });
 
     displayEl.classList.add('shake');
     setTimeout(() => displayEl.classList.remove('shake'), 400);
@@ -815,6 +836,7 @@ keys.forEach(key => {
 
   key.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    if (isPlaying) return;
     key.classList.add('pressed');
     handleDigitPress(digit);
   });
@@ -832,11 +854,16 @@ replayBtn.addEventListener('click', () => {
 document.addEventListener('keydown', (e) => {
   const d = parseInt(e.key);
   if (!isNaN(d) && d >= 0 && d <= 9) {
+    if (isPlaying) return;
     const key = document.querySelector(`.key[data-digit="${d}"]`);
     if (key) key.classList.add('pressed');
     handleDigitPress(d);
   }
   if (e.key === 'Enter' || e.key === ' ') {
+    if (isPlaying) {
+      e.preventDefault();
+      return;
+    }
     ensureAudio();
     if (!gameActive) startGame();
     else replaySequence();
@@ -857,8 +884,7 @@ document.addEventListener('touchend', (e) => {
 }, { passive: false });
 
 window.addEventListener('beforeunload', () => {
-  if (piWorker) piWorker.terminate();
-  if (piWorkerUrl) URL.revokeObjectURL(piWorkerUrl);
+  resetPiWorker();
 });
 </script>
 
