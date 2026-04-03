@@ -5,30 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>PIMON</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Mono:wght@700&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
   :root {
-    --bg: #F5F0E8;
-    --black: #1A1A1A;
-    --red: #D62828;
-    --blue: #1D3557;
-    --yellow: #F4A100;
-    --teal: #2A9D8F;
-    --orange: #E76F51;
-    --pink: #E63946;
-    --purple: #6A4C93;
-    --green: #52B788;
-    --sky: #457B9D;
-    --sand: #C9ADA7;
+    --bg: #ffffff;
+    --black: #000000;
+    --display-bg: #181a1b;
+    --key-red: #c73b3f;
+    --key-orange: #c86341;
+    --key-amber: #f8a83a;
+    --key-green: #40c16a;
+    --key-teal: #3ac3a1;
+    --key-blue: #31a2c3;
+    --key-navy: #2c5ec1;
+    --key-pink: #c5449e;
+    --key-purple: #9c49c1;
+    --key-indigo: #5d49c1;
   }
 
   html, body {
     height: 100%;
     overflow: hidden;
     background: var(--bg);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Roboto', sans-serif;
     color: var(--black);
   }
 
@@ -38,30 +39,36 @@
     height: 100dvh;
     max-width: 420px;
     margin: 0 auto;
-    padding: 12px 12px 16px;
+    padding: 24px 16px 16px;
     position: relative;
   }
 
   /* --- Header --- */
   .header {
     text-align: center;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     flex-shrink: 0;
   }
 
   .logo {
-    font-size: 2.2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 2.6rem;
     font-weight: 700;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+    letter-spacing: 0.08em;
     position: relative;
     display: inline-block;
+    background: var(--black);
+    color: var(--bg);
+    padding: 4px 16px 6px;
+    line-height: 1.1;
+    border: 3px solid var(--black);
   }
 
   .logo .pi-symbol {
-    color: var(--red);
-    font-size: 2.6rem;
-    margin-right: 2px;
+    font-family: 'Times New Roman', Georgia, serif;
+    font-size: 3rem;
+    font-style: italic;
+    vertical-align: baseline;
   }
 
   .subtitle {
@@ -75,7 +82,7 @@
   /* --- Display area --- */
   .display-area {
     flex-shrink: 0;
-    margin-bottom: 6px;
+    margin-bottom: 0;
   }
 
   .score-bar {
@@ -89,72 +96,72 @@
     text-transform: uppercase;
   }
 
-  .score-bar .score { color: var(--teal); font-weight: 700; font-size: 0.85rem; }
-  .score-bar .best { color: var(--purple); font-weight: 700; font-size: 0.85rem; }
+  .score-bar .score { color: var(--key-teal); font-weight: 700; font-size: 0.85rem; }
+  .score-bar .best { color: var(--key-purple); font-weight: 700; font-size: 0.85rem; }
 
   .display {
-    background: var(--black);
-    border-radius: 16px;
-    padding: 16px 20px;
-    min-height: 90px;
+    background: var(--display-bg);
+    border-radius: 0;
+    padding: 20px 24px;
+    min-height: 180px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-end;
+    align-items: flex-end;
     position: relative;
     overflow: hidden;
   }
 
   .display::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 4px;
-    background: linear-gradient(90deg, var(--red), var(--yellow), var(--teal), var(--blue), var(--purple));
+    display: none;
   }
 
   .pi-sequence {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 2.25rem;
+    font-weight: 400;
     color: #555;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.05em;
     word-break: break-all;
-    line-height: 1.5;
-    min-height: 2.2em;
+    line-height: 1.4;
+    min-height: 1.5em;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
+    width: 100%;
   }
 
   .pi-sequence .digit {
     transition: color 0.15s;
-    width: 0.85em;
+    width: auto;
     text-align: center;
   }
 
   .pi-sequence .digit.revealed { color: #aaa; }
-  .pi-sequence .digit.current { color: #fff; font-size: 1.7rem; }
-  .pi-sequence .digit.correct { color: var(--teal); }
-  .pi-sequence .digit.wrong { color: var(--red); }
-  .pi-sequence .digit.point { color: #666; width: 0.5em; }
+  .pi-sequence .digit.current { color: #fff; font-size: 2.5rem; }
+  .pi-sequence .digit.correct { color: var(--key-teal); }
+  .pi-sequence .digit.wrong { color: var(--key-red); }
+  .pi-sequence .digit.point { color: #888; width: auto; }
 
   .message {
     font-size: 0.8rem;
     color: #888;
-    margin-top: 6px;
+    margin-top: 8px;
     letter-spacing: 0.05em;
     min-height: 1.3em;
-    text-align: center;
+    text-align: right;
+    width: 100%;
   }
 
-  .message.error { color: var(--red); font-weight: 700; }
-  .message.success { color: var(--teal); }
+  .message.error { color: var(--key-red); font-weight: 700; }
+  .message.success { color: var(--key-teal); }
 
   .start-panel {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    margin: 12px 0 6px;
+    margin: 20px 0 6px;
   }
 
   .start-hint {
@@ -179,66 +186,69 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    gap: 8px;
+    justify-content: flex-start;
+    gap: 0;
     min-height: 0;
+    position: relative;
+    border: 1px solid var(--black);
+    border-top: none;
   }
 
   .row {
     display: flex;
-    gap: 8px;
+    gap: 0;
     justify-content: center;
   }
 
   .key {
     flex: 1;
-    max-width: 110px;
-    aspect-ratio: 1 / 0.82;
-    border: none;
-    border-radius: 14px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1.8rem;
-    font-weight: 700;
+    max-width: none;
+    aspect-ratio: 1 / 0.83;
+    border: 1px solid var(--black);
+    border-radius: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 2.25rem;
+    font-weight: 400;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.12s, filter 0.12s, box-shadow 0.2s, background 0.2s;
+    transition: transform 0.1s, filter 0.1s, box-shadow 0.15s;
     position: relative;
     user-select: none;
     -webkit-user-select: none;
-    /* Dim "off" state — muted, desaturated */
-    filter: saturate(0.3) brightness(0.55);
-    box-shadow: 0 3px 0 rgba(0,0,0,0.15), 0 4px 8px rgba(0,0,0,0.08);
+    color: var(--black);
+    filter: none;
+    box-shadow: none;
   }
 
   /* Lit up when pressed by user */
   .key:active, .key.pressed {
-    transform: translateY(2px);
-    filter: saturate(1) brightness(1.1);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 0 20px 4px var(--key-glow, rgba(255,255,255,0.3));
+    transform: scale(0.96);
+    filter: brightness(1.2);
+    box-shadow: inset 0 0 20px rgba(255,255,255,0.3);
   }
 
   /* Lit up during Simon playback hint */
   .key.flash {
-    filter: saturate(1.2) brightness(1.25);
-    transform: scale(1.05);
-    box-shadow: 0 4px 0 rgba(0,0,0,0.15), 0 0 24px 6px var(--key-glow, rgba(255,255,255,0.4));
+    filter: brightness(1.3) saturate(1.2);
+    transform: scale(1.03);
+    box-shadow: 0 0 20px 4px var(--key-glow, rgba(255,255,255,0.3));
   }
 
-  .key[data-digit="0"] { background: var(--red); color: #fff; --key-glow: rgba(214,40,40,0.5); }
-  .key[data-digit="1"] { background: var(--blue); color: #fff; --key-glow: rgba(29,53,87,0.5); }
-  .key[data-digit="2"] { background: var(--yellow); color: var(--black); --key-glow: rgba(244,161,0,0.5); }
-  .key[data-digit="3"] { background: var(--teal); color: #fff; --key-glow: rgba(42,157,143,0.5); }
-  .key[data-digit="4"] { background: var(--orange); color: #fff; --key-glow: rgba(231,111,81,0.5); }
-  .key[data-digit="5"] { background: var(--pink); color: #fff; --key-glow: rgba(230,57,70,0.5); }
-  .key[data-digit="6"] { background: var(--purple); color: #fff; --key-glow: rgba(106,76,147,0.5); }
-  .key[data-digit="7"] { background: var(--green); color: #fff; --key-glow: rgba(82,183,136,0.5); }
-  .key[data-digit="8"] { background: var(--sky); color: #fff; --key-glow: rgba(69,123,157,0.5); }
-  .key[data-digit="9"] { background: var(--sand); color: var(--black); --key-glow: rgba(201,173,167,0.5); }
+  .key[data-digit="7"] { background: var(--key-red); --key-glow: rgba(199,59,63,0.5); }
+  .key[data-digit="8"] { background: var(--key-orange); --key-glow: rgba(200,99,65,0.5); }
+  .key[data-digit="9"] { background: var(--key-amber); --key-glow: rgba(248,168,58,0.5); }
+  .key[data-digit="4"] { background: var(--key-green); --key-glow: rgba(64,193,106,0.5); }
+  .key[data-digit="5"] { background: var(--key-teal); --key-glow: rgba(58,195,161,0.5); }
+  .key[data-digit="6"] { background: var(--key-blue); --key-glow: rgba(49,162,195,0.5); }
+  .key[data-digit="1"] { background: var(--key-navy); --key-glow: rgba(44,94,193,0.5); }
+  .key[data-digit="2"] { background: var(--key-pink); --key-glow: rgba(197,68,158,0.5); }
+  .key[data-digit="3"] { background: var(--key-purple); --key-glow: rgba(156,73,193,0.5); }
+  .key[data-digit="0"] { background: var(--key-indigo); --key-glow: rgba(93,73,193,0.5); }
 
   .row-zero { justify-content: center; }
-  .row-zero .key { max-width: 160px; aspect-ratio: 1.6 / 0.82; flex: 0 0 46%; }
+  .row-zero .key { flex: 1; max-width: none; aspect-ratio: auto; padding: 18px 0; }
 
   /* --- Action buttons --- */
   .actions {
@@ -252,33 +262,52 @@
     flex: 1;
     border: 2px solid var(--black);
     background: transparent;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
+    padding-top: 20px;
   }
 
   .btn:active { background: var(--black); color: var(--bg); }
   .btn.primary { background: var(--black); color: var(--bg); }
   .btn.primary:active { background: #333; }
 
-  /* --- Bauhaus decorative elements --- */
-  .bauhaus-circle {
-    position: absolute;
-    width: 60px; height: 60px;
-    border-radius: 50%;
-    opacity: 0.06;
-    pointer-events: none;
+  /* --- Game board (display + keypad wrapper) --- */
+  .game-board {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: box-shadow 0.4s ease;
+    box-shadow: 0px 4px 4px 5px rgba(0,0,0,0.25);
   }
 
-  .bc1 { top: 10px; right: 20px; background: var(--red); width: 40px; height: 40px; }
-  .bc2 { top: 70px; left: 10px; background: var(--yellow); width: 25px; height: 25px; }
-  .bc3 { bottom: 30px; right: 10px; background: var(--blue); width: 50px; height: 50px; }
+  /* --- Player turn indicator glow (static dark) --- */
+  .game-board.player-turn {
+    box-shadow: 0 0 30px 12px rgba(0,0,0,0.5), 0 4px 16px 6px rgba(0,0,0,0.35);
+  }
+
+  /* --- Hover highlight on keys --- */
+  .key:hover {
+    filter: brightness(1.25);
+    z-index: 1;
+  }
+
+  /* --- Green glow on correct sequence --- */
+  @keyframes correct-glow {
+    0% { box-shadow: 0 0 15px 6px rgba(0,0,0,0.35); }
+    20% { box-shadow: 0 0 50px 20px rgba(64,193,106,0.7), 0 0 80px 40px rgba(64,193,106,0.3); }
+    100% { box-shadow: 0px 4px 4px 5px rgba(0,0,0,0.25); }
+  }
+
+  .game-board.correct-flash {
+    animation: correct-glow 1s ease-out;
+  }
 
   /* --- Playback indicator --- */
   .playback-overlay {
@@ -288,7 +317,6 @@
     display: none;
     z-index: 10;
     pointer-events: all;
-    border-radius: 14px;
   }
 
   .playback-overlay.active { display: block; }
@@ -304,12 +332,7 @@
 
   .display.shake { animation: shake 0.4s ease; }
 
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(42,157,143,0); }
-    50% { box-shadow: 0 0 20px 4px rgba(42,157,143,0.3); }
-  }
-
-  .display.glow { animation: pulse-glow 0.6s ease; }
+  .display.glow { /* handled by game-board correct-flash now */ }
 
   .app.awaiting-start .keypad-area,
   .app.awaiting-start .actions {
@@ -328,7 +351,7 @@
     }
 
     .display-area {
-      margin-bottom: 14px;
+      margin-bottom: 0;
     }
 
     .keypad-area {
@@ -345,12 +368,8 @@
 <body>
 
 <div class="app">
-  <div class="bauhaus-circle bc1"></div>
-  <div class="bauhaus-circle bc2"></div>
-  <div class="bauhaus-circle bc3"></div>
-
   <header class="header">
-    <div class="logo"><span class="pi-symbol">&pi;</span>MON</div>
+    <div class="logo"><span class="pi-symbol">πimon</span></div>
     <div class="subtitle"></div>
   </header>
 
@@ -359,39 +378,41 @@
       <span>DIGIT <span class="score" id="score">0</span></span>
       <span>BEST <span class="best" id="best">0</span></span>
     </div>
-    <div class="display" id="display">
-      <div class="pi-sequence" id="sequence">
-        <span class="digit point">3.</span>
+    <div class="game-board" id="gameBoard">
+      <div class="display" id="display">
+        <div class="pi-sequence" id="sequence">
+          <span class="digit point">3.</span>
+        </div>
+        <div class="message" id="message"></div>
       </div>
-      <div class="message" id="message">press any digit to begin</div>
+
+      <div class="keypad-area">
+        <div class="playback-overlay" id="overlay"></div>
+        <div class="row">
+          <button class="key" data-digit="7">7</button>
+          <button class="key" data-digit="8">8</button>
+          <button class="key" data-digit="9">9</button>
+        </div>
+        <div class="row">
+          <button class="key" data-digit="4">4</button>
+          <button class="key" data-digit="5">5</button>
+          <button class="key" data-digit="6">6</button>
+        </div>
+        <div class="row">
+          <button class="key" data-digit="1">1</button>
+          <button class="key" data-digit="2">2</button>
+          <button class="key" data-digit="3">3</button>
+        </div>
+        <div class="row row-zero">
+          <button class="key" data-digit="0">0</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="start-panel" id="startPanel">
     <button class="btn primary" id="startBtn">START GAME</button>
     <div class="start-hint"></div>
-  </div>
-
-  <div class="keypad-area">
-    <div class="playback-overlay" id="overlay"></div>
-    <div class="row">
-      <button class="key" data-digit="7">7</button>
-      <button class="key" data-digit="8">8</button>
-      <button class="key" data-digit="9">9</button>
-    </div>
-    <div class="row">
-      <button class="key" data-digit="4">4</button>
-      <button class="key" data-digit="5">5</button>
-      <button class="key" data-digit="6">6</button>
-    </div>
-    <div class="row">
-      <button class="key" data-digit="1">1</button>
-      <button class="key" data-digit="2">2</button>
-      <button class="key" data-digit="3">3</button>
-    </div>
-    <div class="row row-zero">
-      <button class="key" data-digit="0">0</button>
-    </div>
   </div>
 
   <div class="actions">
@@ -699,6 +720,7 @@ const bestEl = document.getElementById('best');
 const sequenceEl = document.getElementById('sequence');
 const messageEl = document.getElementById('message');
 const displayEl = document.getElementById('display');
+const gameBoardEl = document.getElementById('gameBoard');
 const appEl = document.querySelector('.app');
 const overlay = document.getElementById('overlay');
 const replayBtn = document.getElementById('replayBtn');
@@ -773,6 +795,7 @@ async function playSequence() {
   isPlaying = true;
   playerTurnActive = false;
   overlay.classList.add('active');
+  gameBoardEl.classList.remove('player-turn');
 
   try {
     if (roundLength > piDigitsReady) {
@@ -809,6 +832,7 @@ async function playSequence() {
   isPlaying = false;
   playerTurnActive = true;
   overlay.classList.remove('active');
+  gameBoardEl.classList.add('player-turn');
   inputIndex = 0;
   messageEl.textContent = '';
   messageEl.className = 'message';
@@ -866,6 +890,11 @@ function handleDigitPress(digit) {
       // Completed the full sequence for this round.
       completedDigits = Math.max(0, roundLength - 1);
       updateScore();
+      gameBoardEl.classList.remove('player-turn');
+      gameBoardEl.classList.remove('correct-flash');
+      void gameBoardEl.offsetWidth; // force reflow to restart animation
+      gameBoardEl.classList.add('correct-flash');
+      setTimeout(() => gameBoardEl.classList.remove('correct-flash'), 1000);
 
       if (completedDigits >= MAX_PI_DECIMALS) {
         playSuccessChime();
@@ -887,8 +916,9 @@ function handleDigitPress(digit) {
 
       const gainedDigits = 1;
       if (completedDigits > 0 && completedDigits % 10 === 0) {
-        displayEl.classList.add('glow');
-        setTimeout(() => displayEl.classList.remove('glow'), 600);
+        gameBoardEl.classList.remove('correct-flash');
+        void gameBoardEl.offsetWidth;
+        gameBoardEl.classList.add('correct-flash');
         playSuccessChime();
         messageEl.textContent = `great! +${gainedDigits} digit — ${completedDigits} total`;
         messageEl.className = 'message success';
@@ -906,6 +936,7 @@ function handleDigitPress(digit) {
   } else {
     // Wrong!
     playErrorSound();
+    gameBoardEl.classList.remove('player-turn');
 
     playerTurnActive = false;
     renderSequence({ wrongAt: inputIndex, reveal: true });
