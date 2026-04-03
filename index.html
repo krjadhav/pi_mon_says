@@ -285,6 +285,27 @@
   }
 
   .display.glow { animation: pulse-glow 0.6s ease; }
+
+  @media (min-width: 768px) {
+    .app {
+      justify-content: center;
+      padding-top: 24px;
+      padding-bottom: 24px;
+    }
+
+    .display-area {
+      margin-bottom: 14px;
+    }
+
+    .keypad-area {
+      flex: 0 0 auto;
+      justify-content: flex-start;
+    }
+
+    .actions {
+      margin-top: 14px;
+    }
+  }
 </style>
 </head>
 <body>
