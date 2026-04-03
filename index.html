@@ -606,6 +606,13 @@ bestEl.textContent = bestScore;
 // --- Rendering ---
 function renderSequence(opts = {}) {
   let html = '';
+  const hideDigits = opts.hideDigits === true;
+
+  if (hideDigits) {
+    sequenceEl.innerHTML = '<span class="digit current">_</span>';
+    return;
+  }
+
   const visibleStart = Math.max(0, roundLength - VISIBLE_SEQUENCE_DIGITS);
 
   if (visibleStart > 0) {
@@ -677,7 +684,7 @@ async function playSequence() {
   inputIndex = 0;
   messageEl.textContent = 'your turn — enter the sequence';
   messageEl.className = 'message';
-  renderSequence();
+  renderSequence({ hideDigits: true });
 }
 
 function flashKey(digit) {
