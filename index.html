@@ -292,10 +292,12 @@
     box-shadow: 0 0 30px 12px rgba(0,0,0,0.5), 0 4px 16px 6px rgba(0,0,0,0.35);
   }
 
-  /* --- Hover highlight on keys --- */
-  .key:hover {
-    filter: brightness(1.25);
-    z-index: 1;
+  /* --- Hover highlight on keys (desktop only) --- */
+  @media (hover: hover) {
+    .key:hover {
+      filter: brightness(1.25);
+      z-index: 1;
+    }
   }
 
   /* --- Green glow on correct sequence --- */
