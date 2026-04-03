@@ -329,7 +329,7 @@
       <div class="pi-sequence" id="sequence">
         <span class="digit point">3.</span>
       </div>
-      <div class="message" id="message">press any digit to begin</div>
+      <div class="message" id="message">watch & listen...</div>
     </div>
   </div>
 
@@ -482,6 +482,14 @@ function resetPiWorker() {
   }
 }
 
+function failPendingPiRequests(workerError) {
+  piPendingRequests.forEach(({ reject, targetDecimals }, pendingId) => {
+    piRequestPromises.delete(targetDecimals);
+    reject(workerError);
+    piPendingRequests.delete(pendingId);
+  });
+}
+
 function createPiWorker() {
   if (piWorker) return piWorker;
 
@@ -555,8 +563,10 @@ function createPiWorker() {
     piRequestPromises.delete(targetDecimals);
 
     if (error) {
+      const workerError = new Error(error);
       resetPiWorker();
-      pending.reject(new Error(error));
+      pending.reject(workerError);
+      failPendingPiRequests(workerError);
       return;
     }
 
@@ -565,14 +575,9 @@ function createPiWorker() {
     pending.resolve(targetDecimals);
   };
   piWorker.onerror = (event) => {
-    const error = new Error(event.message || 'pi worker failed');
+    const workerError = new Error(event.message || 'pi worker failed');
     resetPiWorker();
-    piPendingRequests.forEach(({ reject, targetDecimals }) => {
-      piRequestPromises.delete(targetDecimals);
-      reject(error);
-    });
-    piPendingRequests.clear();
-    piRequestPromises.clear();
+    failPendingPiRequests(workerError);
   };
 
   return piWorker;
@@ -749,8 +754,9 @@ function startGame() {
 }
 
 function handleDigitPress(digit) {
-  // Any key press starts the game if not active
+  // After game over, any digit starts a new round.
   if (!gameActive && !isPlaying) {
+    ensureAudio();
     startGame();
     return;
   }
@@ -886,6 +892,8 @@ document.addEventListener('touchend', (e) => {
 window.addEventListener('beforeunload', () => {
   resetPiWorker();
 });
+
+startGame();
 </script>
 
 </body>
