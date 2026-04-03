@@ -351,7 +351,7 @@
 
   <header class="header">
     <div class="logo"><span class="pi-symbol">&pi;</span>MON</div>
-    <div class="subtitle">memorize the infinite</div>
+    <div class="subtitle"></div>
   </header>
 
   <div class="display-area">
@@ -369,7 +369,7 @@
 
   <div class="start-panel" id="startPanel">
     <button class="btn primary" id="startBtn">START GAME</button>
-    <div class="start-hint">spacebar or any digit also starts</div>
+    <div class="start-hint"></div>
   </div>
 
   <div class="keypad-area">
@@ -395,7 +395,7 @@
   </div>
 
   <div class="actions">
-    <button class="btn icon-btn" id="replayBtn" aria-label="Replay sequence" title="Replay sequence">&#8635;</button>
+    <button class="btn icon-btn" id="replayBtn" aria-label="Replay sequence" title="Replay sequence" style="display:none;">&#8635;</button>
   </div>
 </div>
 
@@ -710,19 +710,19 @@ function syncStartUi() {
   appEl.classList.toggle('awaiting-start', awaitingStart);
   startPanel.hidden = !awaitingStart;
   if (startPanelMode === 'retry') {
-    startBtn.textContent = 'TRY AGAIN';
-    messageEl.textContent = `wrong! expected ${getPiDigitAt(inputIndex)} — you got ${completedDigits} digits`;
+    startBtn.textContent = 'TRY AGAIN  ⏎';
+    messageEl.textContent = ``;
     messageEl.className = 'message error';
     const hintEl = startPanel.querySelector('.start-hint');
-    if (hintEl) hintEl.textContent = 'spacebar or any digit also restarts';
+    if (hintEl) hintEl.textContent = '';
     return;
   }
 
-  startBtn.textContent = 'START GAME';
-  messageEl.textContent = 'press any digit to begin';
+  startBtn.textContent = 'START GAME ⏎';
+  messageEl.textContent = '';
   messageEl.className = 'message';
   const hintEl = startPanel.querySelector('.start-hint');
-  if (hintEl) hintEl.textContent = 'spacebar or any digit also starts';
+  if (hintEl) hintEl.textContent = '';
 }
 
 // --- Rendering ---
@@ -788,7 +788,7 @@ async function playSequence() {
     return;
   }
 
-  messageEl.textContent = 'watch & listen...';
+  messageEl.textContent = '';
   messageEl.className = 'message';
 
   renderSequence({ reveal: true });
@@ -808,7 +808,7 @@ async function playSequence() {
   playerTurnActive = true;
   overlay.classList.remove('active');
   inputIndex = 0;
-  messageEl.textContent = 'your turn — enter the sequence';
+  messageEl.textContent = '';
   messageEl.className = 'message';
   renderSequence({ hideDigits: true });
 }
@@ -874,7 +874,7 @@ function handleDigitPress(digit) {
         return;
       }
 
-      playPraiseSound();
+      // playPraiseSound();
       roundLength++;
       playerTurnActive = false;
       if (completedDigits >= RUNTIME_TRIGGER_DIGITS) {
@@ -894,8 +894,8 @@ function handleDigitPress(digit) {
           if (gameActive) playSequence();
         }, 1000);
       } else {
-        messageEl.textContent = `nice! +${gainedDigits} digit — ${completedDigits} total`;
-        messageEl.className = 'message success';
+        // messageEl.textContent = `nice! +${gainedDigits} digit — ${completedDigits} total`;
+        // messageEl.className = 'message success';
         setTimeout(() => {
           if (gameActive) playSequence();
         }, 500);
