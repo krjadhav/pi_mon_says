@@ -1011,9 +1011,9 @@ document.addEventListener('keyup', (e) => {
   }
 });
 
-// Prevent double-tap zoom on mobile
+// Prevent double-tap zoom on mobile (only on keypad keys, not action buttons)
 document.addEventListener('touchend', (e) => {
-  if (e.target.closest('.key, .btn')) e.preventDefault();
+  if (e.target.closest('.key')) e.preventDefault();
 }, { passive: false });
 
 window.addEventListener('beforeunload', () => {
