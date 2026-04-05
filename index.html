@@ -759,7 +759,14 @@ function renderSequence(opts = {}) {
     (playerTurnActive && opts.reveal !== true && opts.wrongAt === undefined);
 
   if (hideDigits) {
-    sequenceEl.innerHTML = '<span class="digit current">_</span>';
+    let inputHtml = '';
+    for (let i = 0; i < inputIndex; i++) {
+      const ch = getPiDigitAt(i) || '?';
+      inputHtml += `<span class="digit correct">${ch}</span>`;
+      if (i === 0) inputHtml += `<span class="digit point">.</span>`;
+    }
+    inputHtml += '<span class="digit current">_</span>';
+    sequenceEl.innerHTML = inputHtml;
     return;
   }
 
